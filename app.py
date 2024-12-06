@@ -10,6 +10,7 @@ from folium.plugins import HeatMap
 from streamlit.components.v1 import html
 from streamlit_folium import st_folium  
 from folium.plugins import HeatMap
+import plotly.graph_objects as go
 import warnings
 
 warnings.filterwarnings('ignore')
@@ -23,50 +24,99 @@ st.set_page_config(
     initial_sidebar_state="expanded", #opciones: collapsed, expanded NO OBLIGATORIO
 )
 
-st.markdown("""
+st.markdown(
+    """
     <style>
-    body {
+    /* Fondo negro para toda la página */
+    .main {
         background-color: black;
-        color: black;
+        padding: 0px 10px;
+    }
+    
+    /* Bordes rojos en los laterales */
+    .reportview-container {
+        background: linear-gradient(to right, red, black, red);
+    }
+    
+    /* Texto en color blanco para mejor visibilidad */
+    .markdown-text-container, .stTextInput, .stButton>button {
+        color: white;
+    }
+    
+    /* Ocultar barra lateral si no se necesita */
+    .css-18ni7ap.e8zbici2 {
+        background-color: transparent;
+    }
+    
+    /* Cambiar botón de ejecución */
+    .stButton button {
+        background-color: red;
+        color: white;
+        border: 1px solid white;
     }
     </style>
-    """, unsafe_allow_html=True)
+    """,
+    unsafe_allow_html=True
+)
 
 
 #FUNCION PARA CARGAR EL DATASET
-listings= pd.read_csv('gz_listings.csv')
-listings = listings[['latitude', 'longitude', 'price', 'neighbourhood']]
-df=pd.read_csv('listings.csv')
-columnas_numericas = listings.select_dtypes(include=['number'])
+df= pd.read_csv('listings.csv')
 
-# Inicializar el KNNImputer con k = 5 (puedes cambiar el valor según lo analizado)
-imputer = KNNImputer(n_neighbors=5)
+agg_data = df.groupby('neighbourhood').agg({
+    'price': 'mean',
+    'availability_365': lambda x: (x.sum() / len(x)) * 100  # Tasa de ocupación como porcentaje
+}).reset_index()
 
-# Imputar valores nulos en las columnas numéricas
-df_numerico_imputado = imputer.fit_transform(columnas_numericas)
+# Renombrar columnas para facilitar el trabajo
+agg_data.columns = ['neighbourhood', 'avg_price', 'occupancy_rate']
 
-# Crear un nuevo DataFrame con los valores imputados y mismas columnas
-df_imputado = pd.DataFrame(df_numerico_imputado, columns=columnas_numericas.columns)
+# Ordenar los vecindarios según el precio medio
+agg_data = agg_data.sort_values('avg_price', ascending=False)
 
-# Reemplazar las columnas numéricas originales en el DataFrame original con las imputadas
-listings[columnas_numericas.columns] = df_imputado
+# Identificar los 5 vecindarios más caros, más baratos y el resto
+top_5_expensive = agg_data.head(5)
+top_5_cheap = agg_data.tail(5)
 
-mapa = folium.Map(location=[listings['latitude'].mean(), listings['longitude'].mean()], zoom_start=10)
+# Crear una columna para asignar los colores
+def get_color(neighbourhood):
+    if neighbourhood in top_5_expensive['neighbourhood'].values:
+        return 'red'  # Color para los 5 más caros
+    elif neighbourhood in top_5_cheap['neighbourhood'].values:
+        return 'blue'  # Color para los 5 más baratos
+    else:
+        return 'green'  # Color para el resto
 
-# Añadir capa de mapa de calor (sin etiquetas, solo el heatmap)
-HeatMap(data=listings[['latitude', 'longitude', 'price']].values, radius=10, max_zoom=13).add_to(mapa)
+# Crear el mapa base
+mapa = folium.Map(location=[df['latitude'].mean(), df['longitude'].mean()], zoom_start=10)
 
-# Añadir marcadores con etiquetas para cada punto con su 'neighbourhood'
-for idx, row in listings.iterrows():
+# Añadir capa de mapa de calor
+HeatMap(data=df[['latitude', 'longitude', 'price']].values, radius=10, max_zoom=13).add_to(mapa)
+
+# Añadir marcadores con etiquetas para cada vecindario
+for _, row in agg_data.iterrows():
+    # Obtener las coordenadas aproximadas del vecindario (media de latitud y longitud)
+    neigh_data = df[df['neighbourhood'] == row['neighbourhood']]
+    lat = neigh_data['latitude'].mean()
+    lon = neigh_data['longitude'].mean()
+
+    # Obtener el color para el marcador
+    color = get_color(row['neighbourhood'])
+
+    # Crear el marcador en el mapa
     folium.CircleMarker(
-        location=(row['latitude'], row['longitude']),
-        radius=3,  # Radio pequeño para que no se solape con el heatmap
-        color='#87CEFA',
+        location=(lat, lon),
+        radius=7,  # Tamaño del marcador
+        color=color,
         fill=True,
-        fill_opacity=0.6,
-        tooltip=f"<b>Barrio:</b> {row['neighbourhood']}<br><b>Precio:</b> ${row['price']:.2f}"
-        #popup=folium.Popup(f"<b>Barrio:</b> {row['neighbourhood']}<br><b>Precio:</b> ${row['price']:.2f}", max_width=300)
+        fill_opacity=0.7,
+        tooltip=(f"<b>Vecindario:</b> {row['neighbourhood']}<br>"
+                 f"<b>Precio Medio:</b> ${row['avg_price']:.2f}<br>"
+                 f"<b>Tasa de Ocupación:</b> {row['occupancy_rate']:.2f}%")
     ).add_to(mapa)
+
+# Guardar y mostrar el mapa
+mapa
 
 #TITULO DE APLICACION
 #st.title('Análisis de Titanic')
@@ -84,7 +134,7 @@ st.markdown('<h1 style="text-align: center; color: red;">Análisis de Airbnb en 
 #st.sidebar.title('TITANIC')
 
 #TABS
-tab1, tab2, tab3 = st.tabs(["Mapa de Calor", "Evolucion de Airbnb", "Predicción"])
+tab1, tab2, tab3, tab4, tab5, tab6, tab7 = st.tabs(["Introduccion", "Evolucion del Precio", "Analisis Geográfico", 'Tasa de Ocupación', 'Numero de Reseñas','PowerBi','Conclusiones'])
 with tab1:
     st.write('Mapa de calor de los Airbnb en la ciudad de Oslo')
     st_folium(mapa, width=1000)
@@ -92,33 +142,39 @@ with tab1:
 
 with tab2:
     st.write('Evolución de la cantidad de Airbnb a lo largo de los años')
-    df['host_since'] = pd.to_datetime(df['host_since'])
+    evolution_per_year = df.groupby('year')['calculated_host_listings_count'].sum().reset_index()
 
-# Extraer el año de 'host_since'
-    df['year'] = df['host_since'].dt.year
+# Crear la figura
+    fig = go.Figure()
 
-# Agrupar por año y calcular la suma de 'calculated_host_listings_count'
-    evolution_per_year = df.groupby('year')['calculated_host_listings_count'].sum()
+# Añadir el gráfico de barras
+    fig.add_trace(go.Bar(
+        x=evolution_per_year['year'],
+        y=evolution_per_year['calculated_host_listings_count'],
+        name='Cantidad total de listings',
+        marker_color='skyblue',
+        opacity=0.7
+    ))
 
-# Crear la figura y el gráfico de barras
-    fig, ax1 = plt.subplots(figsize=(12, 6))
+# Añadir la línea de evolución
+    fig.add_trace(go.Scatter(
+        x=evolution_per_year['year'],
+        y=evolution_per_year['calculated_host_listings_count'],
+        mode='lines+markers',
+        name='Evolución',
+        line=dict(color='red', width=2),
+        marker=dict(symbol='x', size=8)
+    ))
 
-# Gráfico de barras
-    ax1.bar(evolution_per_year.index, evolution_per_year.values, color='skyblue', alpha=0.7, label='Cantidad total de listings')
-    ax1.set_xlabel('Año')
-    ax1.set_ylabel('Cantidad de Airbnbs')
-    ax1.tick_params(axis='y')
+# Configurar título y ejes
+    fig.update_layout(
+        title='Evolución de la cantidad de Airbnbs a lo largo de los años',
+        xaxis_title='Año',
+        yaxis_title='Cantidad de Airbnbs',
+        legend=dict(x=0.1, y=0.9),
+    )
 
-# Crear un segundo eje para la línea
-    ax2 = ax1.twinx()
-    ax2.plot(evolution_per_year.index, evolution_per_year.values, color='r', marker='x', label='Evolución')
-    ax2.set_ylabel('Evolución de Airbnbs')
-    ax2.tick_params(axis='y')
-
-# Título y leyenda
-    #plt.title('Evolución de la cantidad de Airbnbs a lo largo de los años')
-    fig.tight_layout()
-    #fig.legend(loc='upper left', bbox_to_anchor=(0.1, 0.9))
+    fig.show()
 
     st.pyplot(fig)
 
@@ -128,3 +184,15 @@ with tab3:
     plt.figure(figsize=(50,25))
     sns.relplot(data = df, x = 'number_of_reviews', y = 'price', hue = 'room_type')
     st.pyplot()
+
+with tab4:
+    st.write('Tasa de Ocupación')
+
+with tab5:
+    st.write('Numero de Reseñas')
+
+with tab6:
+    st.write('Power Bi')
+
+with tab7:
+    st.write('Conclusiones')
