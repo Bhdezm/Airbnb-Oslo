@@ -20,45 +20,48 @@ warnings.filterwarnings('ignore')
 st.set_page_config(
     page_title="AirBNB Oslo",
     page_icon="🇳🇴",
-    layout="centered", # wide usa todo el ancho de la página mientras que centered centra el contenido en una columna
+    layout="wide", # wide usa todo el ancho de la página mientras que centered centra el contenido en una columna
     initial_sidebar_state="expanded", #opciones: collapsed, expanded NO OBLIGATORIO
 )
 
 st.markdown(
     """
     <style>
-    /* Fondo negro para toda la página */
+    /* Fondo oscuro para toda la aplicación */
+    .stApp {
+        background-color: #1e1e2f;
+        color: #dcdcdc;
+    }
+
+    /* Centrar y expandir contenido principal */
     .main {
-        background-color: black;
-        padding: 0px 10px;
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 20px;
     }
-    
-    /* Bordes rojos en los laterales */
-    .reportview-container {
-        background: linear-gradient(to right, red, black, red);
+
+    /* Estilo para la barra lateral */
+    .css-1d391kg, .css-qbe2hs {
+        background-color: #29293d !important;
+        color: #dcdcdc !important;
     }
-    
-    /* Texto en color blanco para mejor visibilidad */
-    .markdown-text-container, .stTextInput, .stButton>button {
+
+    /* Botones y elementos interactivos */
+    .stButton>button {
+        background-color: #ff4b4b;
         color: white;
+        border: 1px solid #dcdcdc;
     }
-    
-    /* Ocultar barra lateral si no se necesita */
-    .css-18ni7ap.e8zbici2 {
-        background-color: transparent;
-    }
-    
-    /* Cambiar botón de ejecución */
-    .stButton button {
-        background-color: red;
+
+    /* Campos de entrada */
+    .stTextInput>div>input {
+        background-color: #29293d;
         color: white;
-        border: 1px solid white;
     }
     </style>
     """,
     unsafe_allow_html=True
 )
-
 
 #FUNCION PARA CARGAR EL DATASET
 df= pd.read_csv('listings.csv')
@@ -115,17 +118,13 @@ for _, row in agg_data.iterrows():
                  f"<b>Tasa de Ocupación:</b> {row['occupancy_rate']:.2f}%")
     ).add_to(mapa)
 
-# Guardar y mostrar el mapa
-mapa
-
 #TITULO DE APLICACION
-#st.title('Análisis de Titanic')
+st.title('Análisis de Airbnb')
 
 #IMAGEN
 #st.image('img/titanic.jpg', width=200)
 
-#TEXTOS
-st.markdown('<h1 style="text-align: center; color: red;">Análisis de Airbnb en Oslo</h1>', unsafe_allow_html=True)
+
 #st.write('Este es un análisis de los pasajeros del Titanic')
 
 
@@ -174,9 +173,22 @@ with tab2:
         legend=dict(x=0.1, y=0.9),
     )
 
-    fig.show()
+    st.plotly_chart(fig)
 
-    st.pyplot(fig)
+    mapa = folium.Map(location=[df['latitude'].mean(), df['longitude'].mean()], zoom_start=12)
+    HeatMap(data=df[['latitude', 'longitude', 'price']].values, radius=15, max_zoom=13).add_to(mapa)
+
+# Añadir marcadores para los vecindarios
+    for _, row in agg_data.iterrows():
+        folium.Marker(
+        location=[row['latitude'], row['longitude']],
+        popup=folium.Popup(f"<b>Vecindario:</b> {row['neighbourhood']}<br><b>Precio Medio:</b> ${row['price']:.2f}<br><b>Tasa de Ocupación:</b> {row['availability_365']:.2f}%", 
+                          parse_html=True),
+        icon=folium.Icon(color='blue', icon='info-sign')
+        ).add_to(mapa)
+
+# Mostrar el mapa en Streamlit
+    st_folium(mapa, width=1000)
 
 
 with tab3:
