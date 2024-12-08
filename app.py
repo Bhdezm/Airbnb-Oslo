@@ -30,34 +30,62 @@ st.markdown(
     <style>
     /* Fondo oscuro para toda la aplicación */
     .stApp {
-        background-color: #1e1e2f;
-        color: #dcdcdc;
+        background-color: #1e1e2f !important;  /* Color de fondo oscuro */
+        color: #ffffff !important;  /* Color de texto blanco */
     }
 
     /* Centrar y expandir contenido principal */
     .main {
-        max-width: 1200px;
+        max-width: 1500px;
         margin: 0 auto;
         padding: 20px;
     }
 
-    /* Estilo para la barra lateral */
-    .css-1d391kg, .css-qbe2hs {
-        background-color: #29293d !important;
-        color: #dcdcdc !important;
+    /* Barra lateral: Fondo oscuro y texto blanco */
+    .stSidebar {
+        background-color: #29293d !important; /* Fondo oscuro en la barra lateral */
+        color: #ffffff !important; /* Texto blanco en la barra lateral */
     }
 
-    /* Botones y elementos interactivos */
+    /* Títulos y subtítulos en blanco */
+    .stHeader, .stSubheader, .stTitle {
+        color: #ffffff !important;  /* Títulos en blanco */
+    }
+
+    /* Títulos, etiquetas y textos en blanco */
+    .stText, .stMarkdown, .stLabel, .stSelectbox, .stRadio, .stMultiselect {
+        color: #ffffff !important;  /* Texto blanco en todos los elementos */
+    }
+
+    /* Fondo oscuro para los botones */
     .stButton>button {
-        background-color: #ff4b4b;
-        color: white;
-        border: 1px solid #dcdcdc;
+        background-color: #ff4b4b !important; /* Color de fondo del botón */
+        color: white !important; /* Texto blanco */
+        border: 1px solid #dcdcdc !important;  /* Borde blanco */
     }
 
-    /* Campos de entrada */
-    .stTextInput>div>input {
-        background-color: #29293d;
-        color: white;
+    /* Campos de entrada (textos) con fondo oscuro y texto blanco */
+    .stTextInput>div>input, .stTextArea>div>textarea {
+        background-color: #29293d !important; /* Fondo oscuro en los campos de texto */
+        color: white !important;  /* Texto blanco en los campos de texto */
+    }
+
+    /* Seleccionadores desplegables con fondo oscuro y texto blanco */
+    .stSelectbox, .stRadio, .stMultiselect {
+        background-color: #29293d !important;  /* Fondo oscuro en los selectores */
+        color: white !important;  /* Texto blanco */
+    }
+
+    /* Barra lateral: Controles y texto dentro de la barra lateral */
+    .stSidebar .css-1l02zno {
+        background-color: #29293d !important; /* Fondo oscuro en la parte superior de la barra lateral */
+        color: #ffffff !important;  /* Texto blanco */
+    }
+
+    /* Color de borde en las gráficas */
+    .js-plotly-plot .plotly {
+        background-color: #29293d !important;  /* Fondo oscuro en los gráficos */
+        color: white !important;  /* Texto blanco en los gráficos */
     }
     </style>
     """,
@@ -65,15 +93,60 @@ st.markdown(
 )
 
 
-#st.image("Oslo.png", use_column_width=True, caption="Vista de Oslo")
-
 
 #FUNCION PARA CARGAR EL DATASET
 df= pd.read_csv('listings.csv')
 
+st.sidebar.image('airbnb.png')
+
+st.sidebar.title("Filtros")
+
+# Filtro de vecindarios (menú desplegable)
+neighbourhoods = df['neighbourhood'].unique()
+selected_neighbourhood = st.sidebar.selectbox(
+    "Selecciona un vecindario:", 
+    options=["Todos"] + list(neighbourhoods), 
+    index=0
+)
+
+# Filtro de Superhost (menú desplegable)
+superhost_options = df['host_is_superhost'].unique()
+selected_superhost = st.sidebar.selectbox(
+    "Filtrar por Superhost:", 
+    options=["Todos"] + list(superhost_options), 
+    index=0
+)
+
+# Filtro de año (menú desplegable)
+if 'year' in df.columns:
+    years = sorted(df['year'].unique())
+    selected_year = st.sidebar.selectbox(
+        "Selecciona el año:", 
+        options=["Todos"] + years,
+        index=0
+    )
+else:
+    selected_year = "Todos"
+
+# Aplicar filtros
+filtered_data = df
+
+if selected_neighbourhood != "Todos":
+    filtered_data = filtered_data[filtered_data['neighbourhood'] == selected_neighbourhood]
+
+if selected_superhost != "Todos":
+    filtered_data = filtered_data[filtered_data['host_is_superhost'] == selected_superhost]
+
+if selected_year != "Todos":
+    filtered_data = filtered_data[filtered_data['year'] == selected_year]
+
+
+#st.image("Oslo.png", use_column_width=True, caption="Vista de Oslo")
+
+
 agg_data = df.groupby('neighbourhood').agg({
     'price': 'mean',
-    'availability_365': lambda x: (x.sum() / len(x)) * 100  # Tasa de ocupación como porcentaje
+    'occupancy_rate': 'mean'  # Tasa de ocupación como porcentaje
 }).reset_index()
 
 # Renombrar columnas para facilitar el trabajo
@@ -119,8 +192,8 @@ for _, row in agg_data.iterrows():
         fill=True,
         fill_opacity=0.7,
         tooltip=(f"<b>Vecindario:</b> {row['neighbourhood']}<br>"
-                 f"<b>Precio Medio:</b> ${row['avg_price']:.2f}<br>"
-                 f"<b>Tasa de Ocupación:</b> {row['occupancy_rate']:.2f}%")
+                f"<b>Precio Medio:</b> ${row['avg_price']:.2f}<br>"
+                f"<b>Tasa de Ocupación:</b> {row['occupancy_rate']:.2f}%")
     ).add_to(mapa)
 
 #TITULO DE APLICACION
@@ -131,7 +204,7 @@ st.title('Análisis de Airbnb en la ciudad de Oslo')
 #st.sidebar.title('TITANIC')
 
 #TABS
-tab1, tab2, tab3, tab4, tab5, tab6, tab7 = st.tabs(["Introduccion", "Evolucion del Precio", "Analisis Geográfico", 'Tasa de Ocupación', 'Numero de Reseñas','PowerBi','Conclusiones'])
+tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs(["Introducción", "Oferta Airbnb", "Analisis Geográfico", 'Tasa de Ocupación','PowerBi','Conclusiones'])
 with tab1:
     st.markdown("""
     **Oslo** es una ciudad que combina historia, cultura moderna y naturaleza. Con su impresionante fiordo y atracciones únicas, recibe más de **2 millones de visitantes al año**.
@@ -218,10 +291,8 @@ with tab3:
     st.write('Analisis geográfico')
     st_folium(mapa, width=1000)
 
-    neighbourhood_prices = df.groupby('neighbourhood')['price'].mean().reset_index()
+    neighbourhood_prices = df.groupby('neighbourhood')['price'].mean().reset_index().sort_values('price', ascending=False)
 
-    # Ordenar por precio medio
-    neighbourhood_prices = neighbourhood_prices.sort_values('price', ascending=False)
 
     # Crear el gráfico de barras con Plotly Express
     fig = px.bar(
@@ -251,13 +322,44 @@ with tab3:
     
 
 with tab4:
-    st.write('Tasa de Ocupación')
+    st.write('Tasa de ocupación')
+    fig = px.scatter(filtered_data, x='price', y='occupancy_rate', 
+                color='neighbourhood', 
+                labels={'price': 'Precio', 'occupancy_rate': 'Tasa de Ocupación (%)'})
+
+    fig.update_layout(
+    plot_bgcolor='#1e1e2f',  # Fondo del gráfico
+    paper_bgcolor='#1e1e2f',  # Fondo general
+    font_color='white',  # Color del texto  # Estilo del título
+    xaxis=dict(gridcolor='#444444'),  # Color de las líneas del grid (opcional)
+    yaxis=dict(gridcolor='#444444')  # Color de las líneas del grid (opcional)
+)
+
+# Mostrar el gráfico en Streamlit
+    st.title("Análisis de Precio y Tasa de Ocupación")
+    st.write("Este gráfico muestra la relación entre el precio y la tasa de ocupación, diferenciados por vecindarios.")
+    st.plotly_chart(fig)
+
+    st.write('Tasa de ocupación por diferenciado en superhost y regularhost')
+    fig = px.box(filtered_data, x='host_is_superhost', y='occupancy_rate', 
+            title='Tasa de Ocupación: Superhost vs Host Regular', 
+            labels={'superhost': 'Tipo de Host', 'occupancy_rate': 'Tasa de Ocupación (%)'})
+
+    fig.update_layout(
+    plot_bgcolor='#1e1e2f',  # Fondo del gráfico
+    paper_bgcolor='#1e1e2f',  # Fondo general
+    font_color='white',
+    xaxis=dict(gridcolor='#444444'),  # Color de las líneas del grid (opcional)
+    yaxis=dict(gridcolor='#444444')  # Color del texto  # Estilo del título
+)
+
+# Mostrar el gráfico en Streamlit
+    st.title("Análisis de Precio y Tasa de Ocupación")
+    st.write("Este gráfico muestra la relación entre el precio y la tasa de ocupación, diferenciados por vecindarios.")
+    st.plotly_chart(fig)
 
 with tab5:
-    st.write('Numero de Reseñas')
-
-with tab6:
     st.write('Power Bi')
 
-with tab7:
+with tab6:
     st.write('Conclusiones')
