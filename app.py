@@ -341,7 +341,6 @@ with tab4:
     st.write("Este gráfico muestra la relación entre el precio y la tasa de ocupación, diferenciados por vecindarios.")
     st.plotly_chart(fig)
 
-    st.write('Tasa de ocupación por diferenciado en superhost y regularhost')
     fig = px.box(filtered_data, x='host_is_superhost', y='occupancy_rate', 
             labels={'superhost': 'Tipo de Host', 'occupancy_rate': 'Tasa de Ocupación (%)'})
 
@@ -366,7 +365,7 @@ with tab4:
 
 # Mostrar el gráfico en Streamlit
     st.title("Análisis de Precio y Tasa de Ocupación")
-    st.write("Este gráfico muestra la relación entre el precio y la tasa de ocupación, diferenciados por vecindarios.")
+    st.write("Este gráfico muestra la tasa de ocupación diferenciados por vecindarios.")
     st.plotly_chart(fig)
 
     grouped_data = filtered_data.groupby(['neighbourhood', 'host_is_superhost'], as_index=False).agg({'price': 'mean'})
@@ -455,5 +454,5 @@ with tab6:
     st.subheader("Recomendaciones")
     st.write("""
         - Para propietarios: Aumentar las reseñas, ofrecer servicios adicionales y convertirse en superhost puede aumentar el ingreso promedio y la tasa de ocupación.
-        - Para viajeros: Explorar vecindarios menos hacia las afueras como **Grorud** podría ofrecer una experiencia más auténtica a menor costo.
+        - Para viajeros: Explorar vecindarios más hacia las afueras como **Grorud** podría ofrecer una experiencia más auténtica a menor costo.
     """)
