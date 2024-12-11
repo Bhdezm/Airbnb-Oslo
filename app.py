@@ -22,8 +22,8 @@ warnings.filterwarnings('ignore')
 st.set_page_config(
     page_title="AirBNB Oslo",
     page_icon="🇳🇴",
-    layout="wide", # wide usa todo el ancho de la página mientras que centered centra el contenido en una columna
-    initial_sidebar_state="expanded", #opciones: collapsed, expanded NO OBLIGATORIO
+    layout="wide", 
+    initial_sidebar_state="expanded",
 )
 
 st.markdown(
@@ -91,7 +91,6 @@ selected_neighbourhood = st.sidebar.selectbox(
     options=["Todos"] + list(neighbourhoods), 
     index=0
 )
-
 # Filtro de Superhost (menú desplegable)
 superhost_options = df['host_is_superhost'].unique()
 selected_superhost = st.sidebar.selectbox(
@@ -99,7 +98,6 @@ selected_superhost = st.sidebar.selectbox(
     options=["Todos"] + list(superhost_options), 
     index=0
 )
-
 # Filtro de año (menú desplegable)
 if 'year' in df.columns:
     years = sorted(df['year'].unique())
@@ -271,7 +269,6 @@ with tab2:
     - En los años posteriores, se observa una **recuperación gradual**, aunque la cantidad actual de listados sigue estando por debajo del máximo alcanzado en 2016.
     """)
 
-    # Detalles adicionales o reflexiones finales
     st.info("""
     Este análisis refleja cómo eventos globales, como la pandemia, pueden impactar drásticamente el mercado de alquileres a corto plazo.
     Sin embargo, la tendencia de recuperación sugiere que la confianza en plataformas como Airbnb está retornando.
@@ -409,7 +406,6 @@ with tab4:
     )
     )
 
-# Mostrar en Streamlit
     st.plotly_chart(fig, use_container_width=True)
 
 with tab5:
