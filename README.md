@@ -34,7 +34,7 @@ La visualización interactiva y el análisis de datos se encuentran disponibles 
 
 Accede a la visualización y análisis completos en la aplicación **Streamlit**:
 
-👉 [Aplicación de Streamlit - Análisis Airbnb en Oslo](https://nombre-de-tu-app.streamlit.app)  
+👉 [Aplicación de Streamlit - Análisis Airbnb en Oslo](https://airbnb-oslo-4hfyxfcsm6xcgwojqt3qre.streamlit.app/)  
 
 ---
 
